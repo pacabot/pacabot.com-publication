@@ -1,0 +1,203 @@
+# Interface d'édition du site (Sveltia CMS) : https://pacabot.com/admin/
+# Chaque enregistrement crée un commit dans le dépôt GitHub ; le site est ensuite reconstruit et publié.
+# Les champs reprennent le schéma de src/content.config.ts : les garder synchronisés.
+
+backend:
+  name: github
+  repo: pacabot/pacabot.com
+  branch: main
+
+locale: fr
+site_url: https://pacabot.com
+display_url: https://pacabot.com
+logo_url: /favicon.svg
+
+slug:
+  encoding: ascii
+  clean_accents: true
+  sanitize_replacement: '-'
+
+# Par défaut (collections sans dossier propre) : fichiers servis tels quels.
+media_folder: public/uploads
+public_folder: /uploads
+
+collections:
+  - name: projets
+    label: Projets
+    label_singular: Projet
+    description: Robots du club et projets personnels des membres. Un nouveau projet reste en brouillon tant que la case « Brouillon » est cochée.
+    folder: src/content/projets
+    path: '{{slug}}/index'
+    media_folder: ''
+    public_folder: ''
+    extension: md
+    format: frontmatter
+    create: true
+    identifier_field: title
+    summary: '{{title}} — {{type}}'
+    sortable_fields: [title, debut, ordre]
+    fields:
+      - { name: title, label: Titre, widget: string }
+      - { name: summary, label: Résumé (une phrase), widget: text }
+      - { name: type, label: Type, widget: select, default: membre, options: [{ label: Projet du club, value: club }, { label: Projet d'un membre, value: membre }] }
+      - { name: categorie, label: Catégorie, widget: select, options: [robotique, électronique, audio, mécanique, outillage, informatique, autre] }
+      - { name: discipline, label: Discipline, widget: string, required: false, hint: 'Ex. Micromouse, Robot sumo' }
+      - { name: auteurs, label: Auteurs, widget: relation, collection: membres, search_fields: [nom], value_field: '{{slug}}', display_fields: [nom], multiple: true, required: false }
+      - { name: debut, label: Année de début, widget: number, value_type: int }
+      - { name: fin, label: Année de fin, widget: number, value_type: int, required: false }
+      - { name: statut, label: Statut, widget: select, options: [en cours, terminé, en pause, abandonné] }
+      - { name: cover, label: Photo principale, widget: image, required: false }
+      - { name: coverAlt, label: Description de la photo principale, widget: string, required: false }
+      - { name: modele3d, label: Modèle 3D (GLB), widget: file, required: false, media_folder: /public/modeles, public_folder: /modeles, hint: 'Fichier .glb, 8 Mo maximum' }
+      - name: galerie
+        label: Galerie
+        widget: list
+        required: false
+        fields:
+          - { name: src, label: Photo, widget: image }
+          - { name: alt, label: Description, widget: string }
+          - { name: legende, label: Légende, widget: string, required: false }
+      - name: videos
+        label: Vidéos YouTube
+        widget: list
+        required: false
+        hint: 'Ou collez simplement un lien YouTube seul sur une ligne du texte.'
+        fields:
+          - { name: url, label: Lien YouTube, widget: string }
+          - { name: titre, label: Titre, widget: string, required: false }
+      - name: specs
+        label: Caractéristiques
+        widget: list
+        required: false
+        summary: '{{fields.groupe}}'
+        fields:
+          - { name: groupe, label: Groupe, widget: string, hint: 'Ex. Mécanique, Électronique' }
+          - name: lignes
+            label: Lignes
+            widget: list
+            summary: '{{fields.label}} : {{fields.valeur}}'
+            fields:
+              - { name: label, label: Caractéristique, widget: string }
+              - { name: valeur, label: Valeur, widget: string }
+      - name: sources
+        label: Sources (dépôts, documents)
+        widget: list
+        required: false
+        fields:
+          - { name: label, label: Titre, widget: string }
+          - { name: url, label: Adresse, widget: string, hint: 'Lien (https://…) ou adresse e-mail' }
+          - { name: description, label: Description, widget: string, required: false }
+      - { name: licence, label: Licence, widget: string, required: false }
+      - { name: ordre, label: Ordre d'affichage, widget: number, value_type: int, default: 100, hint: 'Plus petit = affiché en premier' }
+      - { name: draft, label: Brouillon (non publié), widget: boolean, default: true }
+      - { name: body, label: Présentation, widget: markdown, hint: 'Pour insérer une vidéo, collez son lien YouTube seul sur une ligne.' }
+
+  - name: actualites
+    label: Actualités
+    label_singular: Actualité
+    folder: src/content/actualites
+    path: '{{slug}}/index'
+    slug: '{{year}}-{{month}}-{{day}}-{{slug}}'
+    media_folder: ''
+    public_folder: ''
+    create: true
+    sortable_fields: [date, title]
+    fields:
+      - { name: title, label: Titre, widget: string }
+      - { name: date, label: Date, widget: datetime, format: 'YYYY-MM-DD', time_format: false }
+      - { name: summary, label: Résumé, widget: text }
+      - { name: rubrique, label: Rubrique, widget: select, default: evenement, options: [{ label: "Événement / vie du club (rubrique Actualités)", value: evenement }, { label: "Technique (journal du projet)", value: technique }] }
+      - { name: projet, label: Projet concerné, widget: relation, collection: projets, search_fields: [title], value_field: '{{slug}}', display_fields: [title], required: false, hint: "Obligatoire pour un article technique : il s'affiche sur la fiche de ce projet" }
+      - { name: cover, label: Photo, widget: image, required: false }
+      - { name: coverAlt, label: Description de la photo, widget: string, required: false }
+      - name: galerie
+        label: Galerie
+        widget: list
+        required: false
+        fields:
+          - { name: src, label: Photo, widget: image }
+          - { name: alt, label: Description, widget: string }
+          - { name: legende, label: Légende, widget: string, required: false }
+      - { name: auteurs, label: Auteurs, widget: relation, collection: membres, search_fields: [nom], value_field: '{{slug}}', display_fields: [nom], multiple: true, required: false }
+      - name: videos
+        label: Vidéos YouTube
+        widget: list
+        required: false
+        hint: 'Ou collez simplement un lien YouTube seul sur une ligne du texte.'
+        fields:
+          - { name: url, label: Lien YouTube, widget: string }
+          - { name: titre, label: Titre, widget: string, required: false }
+      - { name: draft, label: Brouillon (non publié), widget: boolean, default: false }
+      - { name: body, label: Texte, widget: markdown, hint: 'Pour insérer une vidéo, collez son lien YouTube seul sur une ligne.' }
+
+  - name: membres
+    label: Auteurs
+    label_singular: Auteur
+    folder: src/content/membres
+    media_folder: ''
+    public_folder: ''
+    create: true
+    identifier_field: nom
+    fields:
+      - { name: nom, label: Nom affiché, widget: string }
+      - { name: role, label: Rôle, widget: string, required: false }
+      - { name: photo, label: Photo, widget: image, required: false }
+      - name: liens
+        label: Liens
+        widget: list
+        required: false
+        fields:
+          - { name: label, label: Titre, widget: string }
+          - { name: url, label: Adresse, widget: string, hint: 'Lien (https://…) ou adresse e-mail' }
+      - { name: actif, label: Membre actif, widget: boolean, default: true }
+      - { name: body, label: Présentation, widget: markdown, required: false }
+
+  - name: reglages
+    label: Réglages
+    files:
+      - name: palmares
+        label: Palmarès
+        file: src/data/palmares.yaml
+        fields:
+          - name: lignes
+            label: Résultats
+            widget: list
+            summary: '{{fields.annee}} — {{fields.competition}} — {{fields.resultat}}'
+            fields:
+              - { name: annee, label: Année affichée, widget: string, hint: 'Ex. 2016 ou 2012–2014' }
+              - { name: tri, label: Année pour le tri, widget: number, value_type: float }
+              - { name: competition, label: Compétition, widget: string }
+              - { name: epreuve, label: Épreuve, widget: string, required: false }
+              - { name: resultat, label: Résultat, widget: string }
+              - { name: victoire, label: Victoire, widget: boolean, default: false }
+              - { name: robot, label: Robot, widget: relation, collection: projets, search_fields: [title], value_field: '{{slug}}', display_fields: [title], required: false }
+              - { name: robotNom, label: Nom du robot (s'il n'a pas de fiche), widget: string, required: false }
+      - name: club
+        label: Club et ateliers Junior
+        file: src/data/reglages.yaml
+        fields:
+          - name: club
+            label: Club
+            widget: object
+            fields:
+              - { name: email, label: E-mail de contact, widget: string }
+              - { name: lieu, label: Lieu, widget: string }
+              - { name: adresse, label: Adresse postale, widget: string, required: false }
+              - { name: association, label: Nom de l'association, widget: string }
+              - { name: directeurPublication, label: Directeur de la publication, widget: string }
+              - { name: github, label: Organisation GitHub, widget: string }
+              - name: junior
+                label: Ateliers Junior
+                widget: object
+                fields:
+                  - { name: seances, label: Séances, widget: string }
+                  - { name: lieu, label: Lieu, widget: string }
+                  - { name: tarif, label: Tarif, widget: string }
+                  - { name: prochaineSession, label: Prochaine session, widget: string }
+                  - { name: inscriptionUrl, label: Lien d'inscription, widget: string, required: false }
+              - name: partenaires
+                label: Partenaires
+                widget: list
+                fields:
+                  - { name: nom, label: Nom, widget: string }
+                  - { name: url, label: Site, widget: string, required: false }
